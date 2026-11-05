@@ -3,21 +3,23 @@
  * Materia: Matematicas Para la Toma de Decisiones
  * Tema: PERT / CPM
  * Descripcion: Calcular tiempos, holguras y ruta critica
+ * Integrantes del proyecto:
+ * Emily Navarrete Garcia
+ * 
+ * 
  */
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Locale;
+import java.io.InputStreamReader;
+import java.util.*;
 
 public class MetodoPERT {
+    FastReader reader = new FastReader();
+
     static class Actividad {
+
+        //Estructura de datos 
         String nombre;
         String descripcion;
         List<String> nombresPredecesores;
@@ -27,6 +29,7 @@ public class MetodoPERT {
         double O, M, P;
         double esperado, varianza;
         double ES, EF, LS, LF, holgura;
+        boolean esCritica;
 
         Actividad(String nombre, String descripcion, double O, double M, double P) {
             this.nombre = nombre;
@@ -35,13 +38,14 @@ public class MetodoPERT {
             this.M = M;
             this.P = P;
 
-            nombresPredecesores = new ArrayList<>();
-            predecesores = new ArrayList<>();
-            sucesores = new ArrayList<>():
+            this.nombresPredecesores = new ArrayList<>();
+            this.predecesores = new ArrayList<>();
+            this.sucesores = new ArrayList<>():
                
         }
     }
 
-    static List <Actividad> actividades = new ArrayList<>();
-    static Map <String, Actividad> mapa = HashMap<>();
+    //
+    
+    
 }
