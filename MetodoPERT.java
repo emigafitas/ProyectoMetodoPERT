@@ -78,6 +78,14 @@ public class MetodoPERT {
             return s.nextToken();
         }
 
+        double nextDouble() {
+            return Double.parseDouble(next());
+        }
+
+        int nextInt() {
+            return Integer.parseInt(next());
+        }
+
         //lee una linea completa de texto hasta encontrar un salto de linea
         String nextLine() {
             String str = "";
