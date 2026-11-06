@@ -1,0 +1,350 @@
+// Source code is decompiled from a .class file using FernFlower decompiler (from Intellij IDEA).
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+public class MetodoPERT {
+   int n;
+   List<Actividad> actividades = new ArrayList();
+   List<Actividad> orden = new ArrayList();
+   double duracionProyecto = (double)0.0F;
+   List<List<String>> rutasCriticas = new ArrayList();
+   static final double EPSILON = 1.0E-7;
+
+   public MetodoPERT() {
+   }
+
+   public void leerDatos() throws IOException {
+      BufferedReader var1 = new BufferedReader(new FileReader("pert.txt"));
+      int var3 = 0;
+
+      String var2;
+      while((var2 = var1.readLine()) != null) {
+         ++var3;
+         var2 = var2.trim();
+         if (!var2.isEmpty() && !var2.startsWith("#")) {
+            String[] var4 = var2.split("\\s+");
+            if (var4.length != 5) {
+               var1.close();
+               throw new IllegalArgumentException("Error en la linea " + var3 + ". Se necesitan 5 datos.");
+            }
+
+            String var5 = var4[0].toUpperCase();
+            String var6 = var4[1].toUpperCase();
+            double var7 = Double.parseDouble(var4[2]);
+            double var9 = Double.parseDouble(var4[3]);
+            double var11 = Double.parseDouble(var4[4]);
+            if (var7 < (double)0.0F || var9 < var7 || var11 < var9) {
+               var1.close();
+               throw new IllegalArgumentException("Tiempos incorrectos en " + var5);
+            }
+
+            for(Actividad var14 : this.actividades) {
+               if (var14.nombre.equals(var5)) {
+                  var1.close();
+                  throw new IllegalArgumentException("Actividad repetida: " + var5);
+               }
+            }
+
+            Actividad var21 = new Actividad(var5, var7, var9, var11);
+            if (!var6.equals("NA") && !var6.equals("-")) {
+               String[] var22 = var6.split(",", -1);
+
+               for(String var18 : var22) {
+                  String var19 = var18.trim().toUpperCase();
+                  if (var19.isEmpty()) {
+                     var1.close();
+                     throw new IllegalArgumentException("Predecesora incorrecta en " + var5);
+                  }
+
+                  var21.nombresPredecesores.add(var19);
+               }
+            }
+
+            this.actividades.add(var21);
+         }
+      }
+
+      var1.close();
+      this.n = this.actividades.size();
+      if (this.n == 0) {
+         throw new IllegalArgumentException("El archivo no contiene actividades.");
+      }
+   }
+
+   public Actividad buscarActividad(String var1) {
+      for(Actividad var3 : this.actividades) {
+         if (var3.nombre.equals(var1)) {
+            return var3;
+         }
+      }
+
+      return null;
+   }
+
+   public void relacionarActividades() {
+      for(Actividad var2 : this.actividades) {
+         for(int var3 = 0; var3 < var2.nombresPredecesores.size(); ++var3) {
+            String var4 = (String)var2.nombresPredecesores.get(var3);
+            Actividad var5 = this.buscarActividad(var4);
+            if (var5 == null) {
+               throw new IllegalArgumentException("No existe la predecesora: " + var4);
+            }
+
+            if (var5 == var2) {
+               throw new IllegalArgumentException("Una actividad no puede depender de si misma.");
+            }
+
+            for(int var6 = 0; var6 < var3; ++var6) {
+               if (((String)var2.nombresPredecesores.get(var6)).equals(var4)) {
+                  throw new IllegalArgumentException("Predecesora repetida en " + var2.nombre);
+               }
+            }
+
+            var2.predecesores.add(var5);
+            var5.sucesores.add(var2);
+         }
+      }
+
+   }
+
+   public int buscarPosicion(Actividad var1) {
+      for(int var2 = 0; var2 < this.actividades.size(); ++var2) {
+         if (this.actividades.get(var2) == var1) {
+            return var2;
+         }
+      }
+
+      return -1;
+   }
+
+   public boolean predecesorasProcesadas(Actividad var1, boolean[] var2) {
+      for(Actividad var4 : var1.predecesores) {
+         int var5 = this.buscarPosicion(var4);
+         if (var5 == -1 || !var2[var5]) {
+            return false;
+         }
+      }
+
+      return true;
+   }
+
+   public void ordenarActividades() {
+      boolean[] var1 = new boolean[this.n];
+
+      for(int var2 = 0; var2 < this.n; ++var2) {
+         boolean var3 = false;
+
+         for(int var4 = 0; var4 < this.n; ++var4) {
+            Actividad var5 = (Actividad)this.actividades.get(var4);
+            if (!var1[var4] && this.predecesorasProcesadas(var5, var1)) {
+               this.orden.add(var5);
+               var1[var4] = true;
+               var3 = true;
+               break;
+            }
+         }
+
+         if (!var3) {
+            throw new IllegalArgumentException("Existe un ciclo entre las actividades.");
+         }
+      }
+
+   }
+
+   public void calcularTempranos() {
+      for(Actividad var2 : this.orden) {
+         double var3 = (double)0.0F;
+
+         for(Actividad var6 : var2.predecesores) {
+            if (var6.EF > var3) {
+               var3 = var6.EF;
+            }
+         }
+
+         var2.ES = var3;
+         var2.EF = var2.ES + var2.esperado;
+         if (var2.EF > this.duracionProyecto) {
+            this.duracionProyecto = var2.EF;
+         }
+      }
+
+   }
+
+   public void calcularTardios() {
+      for(int var1 = this.orden.size() - 1; var1 >= 0; --var1) {
+         Actividad var2 = (Actividad)this.orden.get(var1);
+         if (var2.sucesores.isEmpty()) {
+            var2.LF = this.duracionProyecto;
+         } else {
+            double var3 = Double.MAX_VALUE;
+
+            for(Actividad var6 : var2.sucesores) {
+               if (var6.LS < var3) {
+                  var3 = var6.LS;
+               }
+            }
+
+            var2.LF = var3;
+         }
+
+         var2.LS = var2.LF - var2.esperado;
+         var2.holgura = var2.LS - var2.ES;
+         if (Math.abs(var2.holgura) < 1.0E-7) {
+            var2.holgura = (double)0.0F;
+         }
+
+         var2.esCritica = Math.abs(var2.holgura) < 1.0E-7;
+      }
+
+   }
+
+   public void buscarRutasCriticas() {
+      this.rutasCriticas.clear();
+
+      for(Actividad var2 : this.actividades) {
+         if (var2.predecesores.isEmpty() && var2.esCritica && Math.abs(var2.ES) < 1.0E-7) {
+            ArrayList var3 = new ArrayList();
+            this.buscarRuta(var2, var3);
+         }
+      }
+
+   }
+
+   public void buscarRuta(Actividad var1, List<String> var2) {
+      var2.add(var1.nombre);
+      if (var1.sucesores.isEmpty() && Math.abs(var1.EF - this.duracionProyecto) < 1.0E-7) {
+         this.rutasCriticas.add(new ArrayList(var2));
+      } else {
+         for(Actividad var4 : var1.sucesores) {
+            if (var4.esCritica && Math.abs(var4.ES - var1.EF) < 1.0E-7) {
+               this.buscarRuta(var4, var2);
+            }
+         }
+      }
+
+      var2.remove(var2.size() - 1);
+   }
+
+   public void mostrarMatrizInicial() {
+      System.out.println("\n========== MATRIZ INICIAL ==========");
+      System.out.printf("%-12s %8s %8s %8s %10s %12s%n", "Actividad", "O", "M", "P", "TE", "Varianza");
+
+      for(Actividad var2 : this.actividades) {
+         System.out.printf(Locale.US, "%-12s %8.2f %8.2f %8.2f %10.2f %12.4f%n", var2.nombre, var2.O, var2.M, var2.P, var2.esperado, var2.varianza);
+      }
+
+   }
+
+   public void mostrarSegundaMatriz() {
+      System.out.println("\n========== MATRIZ PERT / CPM ==========");
+      System.out.printf("%-10s %8s %8s %8s %8s %8s %10s %12s %12s%n", "Actividad", "TE", "ES", "EF", "LS", "LF", "Holgura", "Varianza", "Estado");
+
+      for(Actividad var2 : this.orden) {
+         String var3;
+         if (var2.esCritica) {
+            var3 = "CRITICA";
+         } else {
+            var3 = "NO CRITICA";
+         }
+
+         System.out.printf(Locale.US, "%-10s %8.2f %8.2f %8.2f %8.2f %8.2f %10.2f %12.4f %12s%n", var2.nombre, var2.esperado, var2.ES, var2.EF, var2.LS, var2.LF, var2.holgura, var2.varianza, var3);
+      }
+
+   }
+
+   public void mostrarResultados() {
+      System.out.println("\n========== RESULTADOS DEL PROYECTO ==========");
+      System.out.println("Numero de actividades: " + this.n);
+      System.out.printf(Locale.US, "Duracion total del proyecto: %.2f%n", this.duracionProyecto);
+      System.out.println("\nRUTAS CRITICAS:");
+      if (this.rutasCriticas.isEmpty()) {
+         System.out.println("No se encontraron rutas criticas.");
+      } else {
+         int var1 = 1;
+
+         for(List var3 : this.rutasCriticas) {
+            double var4 = (double)0.0F;
+            System.out.print("Ruta " + var1 + ": ");
+
+            for(int var6 = 0; var6 < var3.size(); ++var6) {
+               String var7 = (String)var3.get(var6);
+               System.out.print(var7);
+               if (var6 < var3.size() - 1) {
+                  System.out.print(" -> ");
+               }
+
+               Actividad var8 = this.buscarActividad(var7);
+               var4 += var8.varianza;
+            }
+
+            double var9 = Math.sqrt(var4);
+            System.out.printf(Locale.US, "%nVarianza de la ruta: %.4f%n", var4);
+            System.out.printf(Locale.US, "Desviacion estandar: %.4f%n", var9);
+            ++var1;
+         }
+      }
+
+   }
+
+   public void resuelve() {
+      this.calcularTempranos();
+      this.calcularTardios();
+      this.buscarRutasCriticas();
+      this.mostrarMatrizInicial();
+      this.mostrarSegundaMatriz();
+      this.mostrarResultados();
+   }
+
+   public static void main(String[] var0) {
+      MetodoPERT var1 = new MetodoPERT();
+
+      try {
+         var1.leerDatos();
+         var1.relacionarActividades();
+         var1.ordenarActividades();
+         var1.resuelve();
+      } catch (IOException var3) {
+         System.out.println("Error al leer pert.txt: " + var3.getMessage());
+      } catch (NumberFormatException var4) {
+         System.out.println("Error: los tiempos deben ser numeros.");
+      } catch (IllegalArgumentException var5) {
+         System.out.println("Error en los datos: " + var5.getMessage());
+      }
+
+   }
+
+   static class Actividad {
+      String nombre;
+      List<String> nombresPredecesores;
+      List<Actividad> predecesores;
+      List<Actividad> sucesores;
+      double O;
+      double M;
+      double P;
+      double esperado;
+      double varianza;
+      double ES;
+      double EF;
+      double LS;
+      double LF;
+      double holgura;
+      boolean esCritica;
+
+      Actividad(String var1, double var2, double var4, double var6) {
+         this.nombre = var1;
+         this.O = var2;
+         this.M = var4;
+         this.P = var6;
+         this.nombresPredecesores = new ArrayList();
+         this.predecesores = new ArrayList();
+         this.sucesores = new ArrayList();
+         this.esperado = (var2 + (double)4.0F * var4 + var6) / (double)6.0F;
+         double var8 = (var6 - var2) / (double)6.0F;
+         this.varianza = var8 * var8;
+      }
+   }
+}
